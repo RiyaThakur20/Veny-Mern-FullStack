@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+  /* --- Veny Cosmic Palette --- */
+  --color-veny-bg: #020617;
+  --color-veny-primary: #6366f1;
+  --color-veny-secondary: #a855f7;
+  --color-veny-accent: #f59e0b;
+  --color-veny-card: rgba(255, 255, 255, 0.03);
+  --color-veny-dark: #0f172a;
+  --color-veny-success: #10b981;
+  --color-veny-error: #ef4444;
+  --color-veny-border: rgba(255, 255, 255, 0.1);
+
+  /* --- Keyframes (Inhe @theme ke andar hi rehne dein) --- */
+  @keyframes drift {
+    0%, 100% { transform: translateY(0) translateX(0); }
+    50% { transform: translateY(-20px) translateX(10px); }
+  }
+
+  @keyframes flicker {
+    0%, 100% { opacity: 0.1; }
+    50% { opacity: 0.4; }
+  }
+
+  @keyframes float {
+    0% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(20px, -20px) scale(1.1); }
+    100% { transform: translate(0, 0) scale(1); }
+  }
+
+  /* --- Animations as Variables --- */
+  --animate-slow-drift: drift 15s ease-in-out infinite;
+  --animate-star-flicker: flicker 4s infinite;
+  --animate-blob: float 10s infinite alternate ease-in-out;
+}
+
+/* --- Utilities Layer (Classes @theme se bahar honi chahiye) --- */
+@utility animate-blob {
+  animation: float 10s infinite alternate ease-in-out;
+}
+
+/* --- Base Body Style --- */
+@layer base {
+  body {
+    background-color: #020617; /* Direct hex for safety or var(--color-veny-bg) */
+    color: white;
+    margin: 0;
+    font-family: sans-serif;
+  }
+}
+
+/* --- Autofill Fix --- */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: white;
+  -webkit-box-shadow: 0 0 0px 1000px #0f172a inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
