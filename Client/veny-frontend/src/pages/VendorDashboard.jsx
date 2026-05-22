@@ -13,24 +13,26 @@ import axiosClient from '../api/axiosClient';
 import AddServiceForm from '../components/AddServiceForm';
 import Map from '../components/Map';
 import ProfileSettings from '../components/ProfileSettings';
+import NotificationBell from '../components/NotificationBell';
+
 
 const STATUS_STYLES = {
-    pending:      { color: 'text-yellow-400',   bg: 'bg-yellow-500/10',   border: 'border-yellow-500/30',  icon: <Clock size={14} /> },
-    confirmed:    { color: 'text-blue-400',     bg: 'bg-blue-500/10',     border: 'border-blue-500/30',    icon: <CheckCircle size={14} /> },
-    'in-progress':{ color: 'text-veny-primary', bg: 'bg-veny-primary/10', border: 'border-veny-primary/30',icon: <Sparkles size={14} /> },
-    completed:    { color: 'text-green-400',    bg: 'bg-green-500/10',    border: 'border-green-500/30',   icon: <CheckCircle size={14} /> },
-    cancelled:    { color: 'text-red-400',      bg: 'bg-red-500/10',      border: 'border-red-500/30',     icon: <XCircle size={14} /> },
+    pending: { color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', icon: <Clock size={14} /> },
+    confirmed: { color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30', icon: <CheckCircle size={14} /> },
+    'in-progress': { color: 'text-veny-primary', bg: 'bg-veny-primary/10', border: 'border-veny-primary/30', icon: <Sparkles size={14} /> },
+    completed: { color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/30', icon: <CheckCircle size={14} /> },
+    cancelled: { color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/30', icon: <XCircle size={14} /> },
 };
 
 const VendorDashboard = ({ user: initialUser }) => {
-    const [user, setUser]                         = useState(initialUser);
+    const [user, setUser] = useState(initialUser);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [activeMenu, setActiveMenu]             = useState('Overview');
-    const [myServices, setMyServices]             = useState([]);
-    const [bookings, setBookings]                 = useState([]);
-    const [showAddForm, setShowAddForm]           = useState(false);
-    const [editingService, setEditingService]     = useState(null);
-    const [togglingId, setTogglingId]             = useState(null);
+    const [activeMenu, setActiveMenu] = useState('Overview');
+    const [myServices, setMyServices] = useState([]);
+    const [bookings, setBookings] = useState([]);
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [editingService, setEditingService] = useState(null);
+    const [togglingId, setTogglingId] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -118,9 +120,9 @@ const VendorDashboard = ({ user: initialUser }) => {
 
     const menuItems = [
         { icon: <LayoutDashboard size={20} />, label: 'Overview' },
-        { icon: <Package size={20} />,          label: 'My Services' },
-        { icon: <Users size={20} />,            label: 'Bookings' },
-        { icon: <Settings size={20} />,         label: 'Settings' },
+        { icon: <Package size={20} />, label: 'My Services' },
+        { icon: <Users size={20} />, label: 'Bookings' },
+        { icon: <Settings size={20} />, label: 'Settings' },
     ];
 
     // Profile avatar
@@ -172,6 +174,9 @@ const VendorDashboard = ({ user: initialUser }) => {
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
                         <input type="search" placeholder="Search orbit..." className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-2xl outline-none focus:bg-white/10 transition-all text-sm text-white" />
                     </div>
+                    <NotificationBell />
+
+
                     <div className="flex items-center gap-4 bg-white/5 p-2 pr-6 rounded-[1.8rem] border border-white/10 ml-4">
                         <div className="h-10 w-10 rounded-2xl overflow-hidden border border-white/10 flex-shrink-0">
                             {avatar
@@ -202,7 +207,7 @@ const VendorDashboard = ({ user: initialUser }) => {
                         <div className="animate-in fade-in duration-700 space-y-10">
                             {/* Stats */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <StatCard label="Total Revenue"  value={`₹${totalRevenue}`} icon={<IndianRupee size={22} />} />
+                                <StatCard label="Total Revenue" value={`₹${totalRevenue}`} icon={<IndianRupee size={22} />} />
                                 <StatCard label="Active Services" value={myServices.filter(s => s.isActive).length} icon={<Package size={22} />} />
                                 <StatCard label="Total Bookings" value={bookings.length} icon={<Users size={22} />} />
                                 <StatCard label="Pending Orders" value={bookings.filter(b => b.status === 'pending').length} icon={<Clock size={22} />} />

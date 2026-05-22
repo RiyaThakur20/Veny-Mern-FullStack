@@ -1,6 +1,7 @@
-const Booking = require('../models/Booking');
-const Service = require('../models/Service');
-const User    = require('../models/User');
+const Booking  = require('../models/Booking');
+const Service  = require('../models/Service');
+const User     = require('../models/User');
+const { createNotification } = require('./notificationController');
 
 const VALID_STATUSES = ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled'];
 
@@ -15,13 +16,9 @@ const createBooking = async (req, res, next) => {
         if (!service) {
             return res.status(404).json({ success: false, msg: "Service not found" });
         }
-
-        // Service active hai ya nahi
         if (!service.isActive) {
             return res.status(400).json({ success: false, msg: "This service is currently unavailable" });
         }
-
-        // Vendor apni khud ki service book na kar sake
         if (service.vendor._id.toString() === req.user._id.toString()) {
             return res.status(400).json({ success: false, msg: "You cannot book your own service" });
         }
@@ -46,6 +43,17 @@ const createBooking = async (req, res, next) => {
 
         await newBooking.save();
 
+        // ✅ Vendor ko notification — naya booking aaya
+        const vendor = await User.findById(service.vendor._id);
+        await createNotification({
+            userId:  service.vendor._id,
+            title:   "New Booking Request! 🌌",
+            message: `${customer.name} ne "${service.name}" ke liye booking ki hai. Date: ${new Date(scheduledDate).toLocaleDateString()}`,
+            type:    'booking_new',
+            link:    '/dashboard',
+            email:   vendor?.email
+        });
+
         res.status(201).json({
             success: true,
             msg:     "Booking Request Sent! 🌌",
@@ -57,7 +65,7 @@ const createBooking = async (req, res, next) => {
 };
 
 // ─────────────────────────────────────────────
-// 2. GET MY BOOKINGS (Customer + Vendor)
+// 2. GET MY BOOKINGS
 // ─────────────────────────────────────────────
 const getMyBookings = async (req, res, next) => {
     try {
@@ -84,7 +92,6 @@ const updateStatus = async (req, res, next) => {
     try {
         const { status } = req.body;
 
-        // Valid status check
         if (!VALID_STATUSES.includes(status)) {
             return res.status(400).json({
                 success: false,
@@ -92,55 +99,94 @@ const updateStatus = async (req, res, next) => {
             });
         }
 
-        const booking = await Booking.findById(req.params.id);
+        const booking = await Booking.findById(req.params.id)
+            .populate('customer', 'name email')
+            .populate('vendor',   'name email businessName')
+            .populate('service',  'name');
+
         if (!booking) {
             return res.status(404).json({ success: false, msg: "Booking not found" });
         }
 
-        const isVendor   = booking.vendor.toString()   === req.user._id.toString();
-        const isCustomer = booking.customer.toString() === req.user._id.toString();
+        const isVendor   = booking.vendor._id.toString() === req.user._id.toString();
+        const isCustomer = booking.customer._id.toString() === req.user._id.toString();
 
-        // Na vendor na customer — access denied
         if (!isVendor && !isCustomer) {
             return res.status(403).json({ success: false, msg: "Access Denied" });
         }
 
-        // ✅ Customer sirf cancel kar sakta hai — pending ya confirmed pe
+        // Customer sirf cancel kar sakta hai
         if (isCustomer) {
             if (status !== 'cancelled') {
-                return res.status(403).json({
-                    success: false,
-                    msg: "Customers can only cancel bookings"
-                });
+                return res.status(403).json({ success: false, msg: "Customers can only cancel bookings" });
             }
             if (!['pending', 'confirmed'].includes(booking.status)) {
-                return res.status(400).json({
-                    success: false,
-                    msg: "Cannot cancel a booking that is already in progress, completed or cancelled"
-                });
+                return res.status(400).json({ success: false, msg: "Cannot cancel at this stage" });
             }
         }
 
-        // ✅ Vendor status flow check — logical order enforce karo
+        // Vendor status flow
         if (isVendor) {
             const validTransitions = {
-                pending:      ['confirmed', 'cancelled'],
-                confirmed:    ['in-progress', 'cancelled'],
-                'in-progress':['completed'],
-                completed:    [],
-                cancelled:    []
+                pending:       ['confirmed', 'cancelled'],
+                confirmed:     ['in-progress', 'cancelled'],
+                'in-progress': ['completed'],
+                completed:     [],
+                cancelled:     []
             };
-
             if (!validTransitions[booking.status]?.includes(status)) {
                 return res.status(400).json({
                     success: false,
-                    msg: `Cannot change status from "${booking.status}" to "${status}"`
+                    msg: `Cannot change from "${booking.status}" to "${status}"`
                 });
             }
         }
 
         booking.status = status;
         await booking.save();
+
+        // ✅ Notifications based on status change
+        const notifMap = {
+            confirmed: {
+                userId:  booking.customer._id,
+                title:   "Booking Confirmed! ✅",
+                message: `${booking.vendor.businessName || booking.vendor.name} ne "${booking.service.name}" booking confirm kar di!`,
+                type:    'booking_confirmed',
+                email:   booking.customer.email
+            },
+            cancelled: {
+                // Agar vendor ne cancel kiya toh customer ko, agar customer ne toh vendor ko
+                userId:  isVendor ? booking.customer._id : booking.vendor._id,
+                title:   "Booking Cancelled ❌",
+                message: isVendor
+                    ? `"${booking.service.name}" booking vendor ne cancel kar di.`
+                    : `Customer ne "${booking.service.name}" booking cancel kar di.`,
+                type:    'booking_cancelled',
+                email:   isVendor ? booking.customer.email : booking.vendor.email
+            },
+            'in-progress': {
+                userId:  booking.customer._id,
+                title:   "Service Started! 🚀",
+                message: `"${booking.service.name}" service shuru ho gayi hai!`,
+                type:    'booking_inprogress',
+                email:   booking.customer.email
+            },
+            completed: {
+                userId:  booking.customer._id,
+                title:   "Service Completed! 🎉",
+                message: `"${booking.service.name}" complete ho gayi! Review zaroor do.`,
+                type:    'booking_completed',
+                link:    `/service/${booking.service._id}`,
+                email:   booking.customer.email
+            }
+        };
+
+        if (notifMap[status]) {
+            await createNotification({
+                ...notifMap[status],
+                link: notifMap[status].link || '/dashboard'
+            });
+        }
 
         res.status(200).json({
             success: true,

@@ -10,6 +10,8 @@ import { toast } from 'react-hot-toast';
 import Map from '../components/Map';
 import bookingService from '../services/bookingService';
 import ProfileSettings from '../components/ProfileSettings';
+import NotificationBell from '../components/NotificationBell';
+
 
 const STATUS_STYLES = {
     pending:       { color: 'text-yellow-400',   bg: 'bg-yellow-500/10',   border: 'border-yellow-500/30',  label: 'Pending',     icon: <Clock size={13} /> },
@@ -173,6 +175,8 @@ const CustomerDashboard = ({ user: initialUser }) => {
                             className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-2xl outline-none focus:bg-white/10 transition-all text-sm text-white"
                         />
                     </div>
+
+                    <NotificationBell />
 
                     <div className="flex items-center gap-4 bg-white/5 p-2 pr-6 rounded-[1.8rem] border border-white/10 ml-4">
                         <div className="h-10 w-10 rounded-2xl overflow-hidden border border-white/10 flex-shrink-0">
