@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import Button from '../components/Button';
-import { Eye, EyeOff, Mail, Lock, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, ArrowRight, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { authService } from '../services/authService';
 
 const Login = () => {
-  const [loading, setLoading]           = useState(false);
-  const [email, setEmail]               = useState("");
-  const [password, setPassword]         = useState("");
-  const [error, setError]               = useState("");
+  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
@@ -61,7 +61,7 @@ const Login = () => {
         <form className="space-y-6" onSubmit={handleSubmit} autoComplete="off">
 
           {/* Dummy hidden fields — browser autofill ko block karta hai */}
-          <input type="text"     style={{ display: 'none' }} autoComplete="username" />
+          <input type="text" style={{ display: 'none' }} autoComplete="username" />
           <input type="password" style={{ display: 'none' }} autoComplete="current-password" />
 
           {/* Email */}
@@ -134,6 +134,13 @@ const Login = () => {
               Join Now <ArrowRight size={14} />
             </Link>
           </p>
+
+          <button
+            onClick={() => navigate('/explore')}
+            className="mt-4 text-gray-600 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 mx-auto hover:text-gray-400 transition-colors"
+          >
+            <ArrowLeft size={12} /> Back to Explore
+          </button>
         </div>
       </div>
     </div>
