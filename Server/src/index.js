@@ -7,16 +7,12 @@ const rateLimit  = require('express-rate-limit');
 const connectDB  = require('./config/db');
 const { errorHandler } = require('./middleware/errorMiddleware');
 
-// Load environment variables
 dotenv.config();
-
-// Connect to Database
 connectDB();
 
 const app = express();
 
-// ✅ Trust proxy — Render/Railway ke peeche proxy hota hai
-// Ye rate-limit aur IP detection ke liye zaroori hai
+// ✅ Trust proxy — Render ke liye
 app.set('trust proxy', 1);
 
 // ─────────────────────────────────────────────
@@ -24,24 +20,25 @@ app.set('trust proxy', 1);
 // ─────────────────────────────────────────────
 app.use(helmet({ contentSecurityPolicy: false }));
 
-// ✅ CORS — Vercel frontend allow karo
+// ✅ CORS FIX — sab origins allow karo
 app.use(cors({
-    origin: [
-        'http://localhost:5173',           // local dev
-        process.env.FRONTEND_URL,          // Vercel URL from env
-    ].filter(Boolean),
-    credentials: true
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// ✅ Preflight requests handle karo
+app.options('*', cors());
 
 app.use(express.json({ limit: '50kb' }));
 app.use(express.urlencoded({ extended: true, limit: '50kb' }));
 app.use(morgan('dev'));
 
-// ✅ Rate Limiting — trust proxy ke baad define karo
+// Rate Limiting
 const limiter = rateLimit({
-    max:       100,
-    windowMs:  15 * 60 * 1000,
-    message:   "Too many requests from this IP, please try again in 15 minutes.",
+    max:             100,
+    windowMs:        15 * 60 * 1000,
+    message:         "Too many requests from this IP, please try again in 15 minutes.",
     standardHeaders: true,
     legacyHeaders:   false,
 });
