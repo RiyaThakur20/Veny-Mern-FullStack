@@ -3,24 +3,31 @@ const nodemailer = require('nodemailer');
 /**
  * Utility function to send emails via Gmail SMTP
  * Supports both plain text and HTML messages
+ * ✅ IPv4 forced — Render/Railway IPv6 issue fix
  */
 const sendEmail = async (options) => {
 
-    // 1. Transporter — Gmail SMTP
+    // 1. Transporter — Gmail SMTP with IPv4 forced
     const transporter = nodemailer.createTransport({
-        service: 'Gmail',
+        host:   'smtp.gmail.com', // ✅ explicit host instead of service
+        port:   587,              // ✅ TLS port
+        secure: false,            // ✅ false for port 587
+        family: 4,                // ✅ IPv4 force — Render pe IPv6 issue fix
         auth: {
             user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS, // Gmail App Password (not your login password)
+            pass: process.env.EMAIL_PASS, // Gmail App Password
         },
+        tls: {
+            rejectUnauthorized: false // ✅ SSL certificate issues avoid
+        }
     });
 
-    // 2. Mail options — ✅ HTML support added for better OTP emails
+    // 2. Mail options
     const mailOptions = {
         from:    `"Veny Support" <${process.env.EMAIL_USER}>`,
         to:      options.email,
         subject: options.subject,
-        text:    options.message, // plain text fallback
+        text:    options.message,
         html:    options.html || `
             <div style="font-family: sans-serif; background: #020617; color: white; padding: 40px; border-radius: 16px; max-width: 480px; margin: auto;">
                 <h1 style="font-size: 32px; font-weight: 900; font-style: italic; letter-spacing: -1px;">
