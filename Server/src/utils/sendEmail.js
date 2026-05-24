@@ -9,10 +9,9 @@ const sendEmail = async (options) => {
 
     // 1. Transporter — Gmail SMTP with IPv4 forced
     const transporter = nodemailer.createTransport({
-        host:   'smtp.gmail.com', // ✅ explicit host instead of service
-        port:   587,              // ✅ TLS port
-        secure: false,            // ✅ false for port 587
-        family: 4,                // ✅ IPv4 force — Render pe IPv6 issue fix
+        host: '172.253.115.108', // 👉 smtp.gmail.com ka direct IPv4 IP address hai yeh!
+        port: 587,
+        secure: false,
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS, // Gmail App Password
