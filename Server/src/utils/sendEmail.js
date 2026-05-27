@@ -1,27 +1,21 @@
 const nodemailer = require('nodemailer');
 
 /**
- * Utility function to send emails via Gmail SMTP
- * Supports both plain text and HTML messages
- * ✅ IPv4 forced — Render/Railway IPv6 issue fix
+ * Utility function to send emails via Brevo SMTP
+ * Brevo works perfectly on Render — no IPv6 issues
  */
 const sendEmail = async (options) => {
 
-    // 1. Transporter — Gmail SMTP with IPv4 forced
     const transporter = nodemailer.createTransport({
-        host: '172.253.115.108', // 👉 smtp.gmail.com ka direct IPv4 IP address hai yeh!
-        port: 587,
+        host:   'smtp-relay.brevo.com', // ✅ Brevo SMTP
+        port:   587,
         secure: false,
         auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS, // Gmail App Password
-        },
-        tls: {
-            rejectUnauthorized: false // ✅ SSL certificate issues avoid
+            user: process.env.EMAIL_USER, // Brevo SMTP login
+            pass: process.env.EMAIL_PASS, // Brevo SMTP password
         }
     });
 
-    // 2. Mail options
     const mailOptions = {
         from:    `"Veny Support" <${process.env.EMAIL_USER}>`,
         to:      options.email,
@@ -46,9 +40,9 @@ const sendEmail = async (options) => {
         `,
     };
 
-    // 3. Send
     try {
         await transporter.sendMail(mailOptions);
+        console.log("✅ Email sent to:", options.email);
     } catch (error) {
         console.error("❌ Email Sending Error:", error.message);
         throw new Error("Email could not be sent");
