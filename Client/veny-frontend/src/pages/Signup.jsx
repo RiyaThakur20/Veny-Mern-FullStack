@@ -220,24 +220,6 @@ const Signup = () => {
         try {
             const { confirmPassword, lat, lng, address, addressFields, ...rest } = formData;
     
-            // ✅ Step 1: OTP generate karo
-            const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-            const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toLocaleTimeString();
-    
-            // ✅ Step 2: EmailJS se OTP bhejo
-            await emailjs.send(
-                import.meta.env.VITE_EMAILJS_SERVICE_ID,
-                import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-                {
-                    to_email: formData.email,
-                    to_name:  formData.name,
-                    passcode: otpCode,
-                    time:     otpExpiry,
-                },
-                import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-            );
-    
-            // ✅ Step 3: OTP backend pe bhi save karo
             const dataToSend = {
                 ...rest,
                 location: {
@@ -245,14 +227,27 @@ const Signup = () => {
                     coordinates: [parseFloat(lng), parseFloat(lat)],
                     address,
                 },
-                otp:        otpCode,
-                otpExpires: new Date(Date.now() + 10 * 60 * 1000)
             };
     
-            // ✅ Step 4: Backend pe user save karo
+            // ✅ Step 1: Backend pe signup — OTP wahan generate hoga
             const response = await authService.signup(dataToSend);
     
             if (response.status === 201 || response.status === 200) {
+                const otpCode = response.data.otp; // 👈 Backend se OTP lo
+    
+                // ✅ Step 2: EmailJS se OTP bhejo
+                await emailjs.send(
+                    import.meta.env.VITE_EMAILJS_SERVICE_ID,
+                    import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+                    {
+                        to_email: formData.email,
+                        to_name:  formData.name,
+                        passcode: otpCode,
+                        time:     new Date(Date.now() + 10 * 60 * 1000).toLocaleTimeString(),
+                    },
+                    import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+                );
+    
                 toast.success("Welcome to the Galaxy! Check your email for OTP 🚀");
                 navigate('/verify-otp', {
                     state: {
