@@ -9,14 +9,13 @@ const VerifyOTP = () => {
     const navigate  = useNavigate();
     const location  = useLocation();
     const email     = location.state?.email || "";
-    const from      = location.state?.from  || '/dashboard'; // post-login redirect
+    const from      = location.state?.from  || '/dashboard';
 
-    const [otp, setOtp]         = useState("");
-    const [loading, setLoading] = useState(false);
+    const [otp, setOtp]             = useState("");
+    const [loading, setLoading]     = useState(false);
     const [resending, setResending] = useState(false);
-    const [error, setError]     = useState("");
+    const [error, setError]         = useState("");
 
-    // ✅ Bug 1 Fixed: email nahi toh /login pe bhejo, "/" nahi
     useEffect(() => {
         if (!email) navigate('/login', { replace: true });
     }, [email, navigate]);
@@ -27,13 +26,21 @@ const VerifyOTP = () => {
         setError("");
 
         try {
+            // ✅ Pehle frontend OTP se match karo
+            const frontendOtp = location.state?.frontendOtp;
+            if (frontendOtp && String(otp) !== String(frontendOtp)) {
+                setError("Invalid OTP. Please try again.");
+                setLoading(false);
+                return;
+            }
+
             const response = await authService.verifyOTP({ email, otp });
             if (response.status === 200) {
                 const { token, user } = response.data;
                 localStorage.setItem('token', token);
                 if (user) localStorage.setItem('user', JSON.stringify(user));
                 toast.success("Access granted! Welcome to Veny 🚀");
-                navigate(from, { replace: true }); // redirect to intended page
+                navigate(from, { replace: true });
             }
         } catch (err) {
             const msg = err.response?.data?.msg || err.response?.data?.message || "Invalid OTP. Please try again.";
@@ -43,12 +50,11 @@ const VerifyOTP = () => {
         }
     };
 
-    // ✅ Bug 2 Fixed: Resend OTP — re-trigger login to send new OTP
     const handleResend = async () => {
         setResending(true);
         setError("");
         try {
-            await authService.resendOTP({ email }); // see authService note below
+            await authService.resendOTP({ email });
             toast.success("New OTP sent to your email!");
             setOtp("");
         } catch {
@@ -60,14 +66,12 @@ const VerifyOTP = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#020617] px-4 relative overflow-hidden">
-            {/* Cosmic Background */}
             <div className="absolute -top-24 -left-24 w-[450px] h-[450px] bg-veny-primary/20 rounded-full blur-[120px] animate-blob" />
             <div className="absolute -bottom-24 -right-24 w-[450px] h-[450px] bg-indigo-600/10 rounded-full blur-[120px] animate-blob animation-delay-2000" />
             <div className="absolute inset-0 opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]" />
 
             <div className="w-full max-w-md bg-white/5 backdrop-blur-2xl p-10 rounded-[3rem] shadow-[0_0_50px_rgba(79,70,229,0.1)] border border-white/10 relative z-10">
 
-                {/* Header */}
                 <div className="text-center mb-10">
                     <div className="w-20 h-20 bg-white/5 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border border-white/10 shadow-xl hover:border-veny-primary/50 transition-all duration-500 group">
                         <ShieldCheck className="text-veny-primary group-hover:scale-110 transition-transform" size={40} />
@@ -80,8 +84,6 @@ const VerifyOTP = () => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-8">
-
-                    {/* OTP Input */}
                     <div className="relative group">
                         <input
                             type="text"
@@ -89,7 +91,6 @@ const VerifyOTP = () => {
                             maxLength="6"
                             placeholder="000000"
                             value={otp}
-                            // ✅ Warn Fixed: numbers only, max 6 digits
                             onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                             className="w-full text-center tracking-[0.6em] text-4xl font-black py-6 bg-black/20 border border-white/10 rounded-[2rem] text-white placeholder:text-gray-800 focus:bg-white/5 focus:border-veny-primary/50 focus:ring-1 focus:ring-veny-primary/20 outline-none transition-all shadow-inner"
                             required
@@ -97,7 +98,6 @@ const VerifyOTP = () => {
                         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3/4 h-1 bg-veny-primary/20 blur-lg opacity-0 group-focus-within:opacity-100 transition-opacity" />
                     </div>
 
-                    {/* Error */}
                     {error && (
                         <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl animate-in fade-in zoom-in-95 duration-300">
                             <p className="text-red-400 text-[11px] font-black italic text-center uppercase tracking-tighter">
@@ -115,7 +115,6 @@ const VerifyOTP = () => {
                     </div>
 
                     <div className="flex flex-col gap-4 items-center pt-2">
-                        {/* ✅ Bug 2 Fixed: Resend OTP handler */}
                         <button
                             type="button"
                             onClick={handleResend}
@@ -126,7 +125,6 @@ const VerifyOTP = () => {
                             {resending ? "Sending..." : "Resend OTP"}
                         </button>
 
-                        {/* ✅ Bug 3 Fixed: /login nahi "/" */}
                         <button
                             type="button"
                             onClick={() => navigate('/login')}
