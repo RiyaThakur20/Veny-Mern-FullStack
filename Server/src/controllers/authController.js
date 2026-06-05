@@ -65,43 +65,29 @@ const signup = async (req, res, next) => {
 const login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
-
         const user = await User.findOne({ email }).select('+password');
         if (!user) {
             return res.status(400).json({ success: false, msg: "Invalid credentials" });
         }
-
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ success: false, msg: "Invalid credentials" });
         }
-
-        // Block unverified users
         if (!user.isVerified) {
             return res.status(403).json({ success: false, msg: "Please verify your email first." });
         }
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
-
         await User.findByIdAndUpdate(user._id, { $set: { otp, otpExpires } });
 
-        try {
-            await sendEmail({
-                email: user.email,
-                subject: 'Your Veny Login OTP',
-                message: `Hello ${user.name},\n\nYour login OTP is: ${otp}\nValid for 10 minutes.`,
-            });
-
-            res.status(200).json({
-                success: true,
-                msg: "OTP sent to your registered email."
-            });
-
-        } catch (emailError) {
-            await User.findByIdAndUpdate(user._id, { $set: { otp: null, otpExpires: null } });
-            return res.status(500).json({ success: false, msg: "Failed to send OTP email." });
-        }
+        // ✅ sendEmail hata diya — OTP frontend ko do
+        res.status(200).json({
+            success: true,
+            msg: "OTP sent to your registered email.",
+            otp:  otp,          // 👈 yeh add kiya
+            name: user.name,    // 👈 EmailJS ke liye
+        });
 
     } catch (err) {
         next(err);
