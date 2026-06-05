@@ -3,6 +3,7 @@ import Button from '../components/Button';
 import { Eye, EyeOff, Mail, Lock, ArrowRight, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { authService } from '../services/authService';
+import emailjs from '@emailjs/browser';
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
@@ -27,8 +28,31 @@ const Login = () => {
     setLoading(true);
     try {
       const response = await authService.login({ email, password });
+
       if (response.data.success || response.status === 200) {
-        navigate('/verify-otp', { state: { email, from } });
+        const otpCode = response.data.otp;   // 👈 Backend se OTP lo
+        const name    = response.data.name;  // 👈 Backend se name lo
+
+        // ✅ EmailJS se OTP bhejo
+        await emailjs.send(
+          import.meta.env.VITE_EMAILJS_SERVICE_ID,
+          import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+          {
+            to_email: email,
+            to_name:  name,
+            passcode: otpCode,
+            time:     new Date(Date.now() + 10 * 60 * 1000).toLocaleTimeString(),
+          },
+          import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+        );
+
+        navigate('/verify-otp', {
+          state: {
+            email,
+            from,
+            frontendOtp: otpCode  // 👈 VerifyOTP page pe check ke liye
+          }
+        });
       }
     } catch (err) {
       const serverMessage =
@@ -57,14 +81,11 @@ const Login = () => {
           <p className="text-gray-500 font-bold text-[10px] uppercase tracking-[0.4em]">Professional Marketplace</p>
         </div>
 
-        {/* ✅ autoComplete="off" on form + hidden dummy fields to trick browser */}
         <form className="space-y-6" onSubmit={handleSubmit} autoComplete="off">
 
-          {/* Dummy hidden fields — browser autofill ko block karta hai */}
           <input type="text" style={{ display: 'none' }} autoComplete="username" />
           <input type="password" style={{ display: 'none' }} autoComplete="current-password" />
 
-          {/* Email */}
           <div className="space-y-2">
             <label className="text-[10px] font-black text-gray-500 ml-1 uppercase tracking-[0.2em]">
               Email Address
@@ -76,14 +97,13 @@ const Login = () => {
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                autoComplete="new-password"  // ✅ browser autofill band
+                autoComplete="new-password"
                 className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder:text-gray-600 focus:bg-white/10 focus:border-veny-primary/50 focus:ring-1 focus:ring-veny-primary/20 outline-none transition-all font-medium"
                 required
               />
             </div>
           </div>
 
-          {/* Password */}
           <div className="space-y-2">
             <label className="text-[10px] font-black text-gray-500 ml-1 uppercase tracking-[0.2em]">
               Security Key
@@ -95,7 +115,7 @@ const Login = () => {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete="new-password"  // ✅ browser autofill band
+                autoComplete="new-password"
                 className="w-full pl-12 pr-12 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder:text-gray-600 focus:bg-white/10 focus:border-veny-primary/50 focus:ring-1 focus:ring-veny-primary/20 outline-none transition-all font-medium"
                 required
               />
@@ -109,7 +129,6 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Error */}
           {error && (
             <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl animate-in fade-in duration-300">
               <p className="text-red-400 text-[11px] font-black italic flex items-center justify-center gap-2 uppercase tracking-tighter text-center">
