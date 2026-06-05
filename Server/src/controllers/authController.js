@@ -15,27 +15,21 @@ const generateToken = (id, role) => {
 // ─────────────────────────────────────────────
 const signup = async (req, res, next) => {
     try {
-        // ✅ Bug 1 Fixed: lat/lng nahi — frontend ka location object directly lo
         const { name, email, password, role, location, businessName } = req.body;
 
-        // Validate location
         if (!location?.coordinates?.length) {
             return res.status(400).json({ success: false, msg: "Location is required" });
         }
-
-        // Vendor ke liye businessName required
         if (role === 'vendor' && !businessName?.trim()) {
             return res.status(400).json({ success: false, msg: "Business name is required for vendors" });
         }
 
-        // Duplicate check
         let user = await User.findOne({ email });
         if (user) return res.status(400).json({ success: false, msg: "User already exists" });
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // ✅ Warn 1: Signup ke baad bhi OTP verify karo
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
@@ -45,7 +39,7 @@ const signup = async (req, res, next) => {
             password: hashedPassword,
             role,
             businessName: role === 'vendor' ? businessName : undefined,
-            location,       // ✅ Frontend already GeoJSON format mein bhejta hai
+            location,
             otp,
             otpExpires,
             isVerified: false,
@@ -53,22 +47,11 @@ const signup = async (req, res, next) => {
 
         await user.save();
 
-        // Send verification OTP
-        try {
-            await sendEmail({
-                email: user.email,
-                subject: 'Verify your Veny Account',
-                message: `Hello ${user.name},\n\nYour verification OTP is: ${otp}\nValid for 10 minutes.\n\nWelcome to Veny! 🚀`,
-            });
-        } catch (emailError) {
-            // Email fail hone pe user delete karo taaki retry possible ho
-            await User.findByIdAndDelete(user._id);
-            return res.status(500).json({ success: false, msg: "Failed to send verification email. Please try again." });
-        }
-
+        // ✅ sendEmail hata diya — EmailJS frontend se bhejega
         res.status(201).json({
             success: true,
             msg: "Account created! OTP sent to your email for verification.",
+            otp: otp, // 👈 Frontend ko OTP do
         });
 
     } catch (error) {
