@@ -209,60 +209,61 @@ const Signup = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
+    
         if (!formData.lat || !formData.lng) { setError("Please sync your location first!"); return; }
         if (!formData.address.trim())        { setError("Please provide your address."); return; }
         if (formData.password !== formData.confirmPassword) { setError("Passwords don't match!"); return; }
         if (formData.password.length < 6)   { setError("Password must be at least 6 characters."); return; }
         if (formData.role === "vendor" && !formData.businessName.trim()) { setError("Business name is required for vendors."); return; }
-
+    
         setLoading(true);
         try {
             const { confirmPassword, lat, lng, address, addressFields, ...rest } = formData;
-
+    
+            // ✅ Step 1: OTP generate karo
+            const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+            const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toLocaleTimeString();
+    
+            // ✅ Step 2: EmailJS se OTP bhejo
+            await emailjs.send(
+                import.meta.env.VITE_EMAILJS_SERVICE_ID,
+                import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+                {
+                    to_email: formData.email,
+                    to_name:  formData.name,
+                    passcode: otpCode,
+                    time:     otpExpiry,
+                },
+                import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+            );
+    
+            // ✅ Step 3: OTP backend pe bhi save karo
             const dataToSend = {
                 ...rest,
                 location: {
                     type:        'Point',
                     coordinates: [parseFloat(lng), parseFloat(lat)],
                     address,
-                }
-            };
-
-            // ✅ Step 1: Frontend pe OTP generate karo
-            const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-            const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toLocaleTimeString();
-
-            // ✅ Step 2: EmailJS se OTP bhejo PEHLE — agar email fail ho toh signup mat karo
-            await emailjs.send(
-                import.meta.env.VITE_EMAILJS_SERVICE_ID,
-                import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-                {
-                    to_email: formData.email,  // ✅ recipient email
-                    to_name:  formData.name,   // ✅ recipient name
-                    passcode: otpCode,          // ✅ {{passcode}} template variable
-                    time:     otpExpiry,        // ✅ {{time}} template variable
                 },
-                import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-            );
-
-            // ✅ Step 3: Email success — ab backend pe user save karo
+                otp:        otpCode,
+                otpExpires: new Date(Date.now() + 10 * 60 * 1000)
+            };
+    
+            // ✅ Step 4: Backend pe user save karo
             const response = await authService.signup(dataToSend);
-
+    
             if (response.status === 201 || response.status === 200) {
                 toast.success("Welcome to the Galaxy! Check your email for OTP 🚀");
-                // ✅ OTP aur email next page pe pass karo
                 navigate('/verify-otp', {
                     state: {
                         email:       formData.email,
-                        frontendOtp: otpCode  // ✅ VerifyOTP page pe check hoga
+                        frontendOtp: otpCode
                     }
                 });
             }
-
+    
         } catch (err) {
             console.error("Signup Error:", err);
-            // ✅ EmailJS error alag handle karo
             if (err?.status === 400 || err?.text) {
                 setError("Email could not be sent. Please check your email address.");
             } else {
